@@ -18,13 +18,13 @@ pub struct Visuals {
 
 #[derive(clap::Parser, Debug)]
 struct CliArgs {
-    file: PathBuf,
+    ltn_file: PathBuf,
 }
 
 fn main() -> eyre::Result<()> {
     let args = CliArgs::parse();
 
-    let layout = Layout::load_from_file(&args.file)?;
+    let layout = Layout::load_from_file(&args.ltn_file)?;
 
     let mut midi = MidiState::default();
 
