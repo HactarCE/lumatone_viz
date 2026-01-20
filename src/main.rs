@@ -49,6 +49,7 @@ fn main() -> eyre::Result<()> {
 
             if let MidiState::Connected(state) = &midi {
                 while let Some(ev) = state.try_recv() {
+                    dbg!(ev);
                     if let midly::live::LiveEvent::Midi { channel, message } = ev {
                         match message {
                             midly::MidiMessage::NoteOff { key, vel: _ } => {
