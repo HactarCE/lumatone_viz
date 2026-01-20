@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 use eyre::{Context, ContextCompat, bail};
 use itertools::Itertools;
@@ -9,14 +9,29 @@ pub struct Layout {
 }
 
 impl Layout {
-    pub fn load_from_file(file: &Path) -> eyre::Result<Self> {
-        let ini = ini::Ini::load_from_file(file).context("parsing layout file")?;
+    pub fn load_from_file(ltn_file: &Path) -> eyre::Result<Self> {
+        let ltn_file_contents = std::fs::read_to_string(ltn_file).context("parsing layout file")?;
+        let mut sections = HashMap::new();
+        let mut section_name = "";
+        let mut section = HashMap::new();
+        for line in ltn_file_contents.lines() {
+            if let Some(new_section_name) = line.strip_prefix('[').and_then(|l| l.strip_suffix(']'))
+            {
+                sections.insert(section_name, std::mem::take(&mut section));
+                section_name = new_section_name;
+            } else if let Some((k, v)) = line.split_once('=') {
+                section.insert(k.trim(), v.trim());
+            }
+        }
+        sections.insert(section_name, section);
+
         Ok(Self {
             boards: (0..5)
                 .map(|i| {
                     let section_name = format!("Board{i}");
                     Board::from_section(
-                        ini.section(Some(&section_name))
+                        sections
+                            .get(section_name.as_str())
                             .wrap_err_with(|| format!("missing section '{section_name}'"))?,
                     )
                 })
@@ -33,23 +48,23 @@ pub struct Board {
 }
 
 impl Board {
-    fn from_section(section: &ini::Properties) -> eyre::Result<Self> {
+    fn from_section(section: &HashMap<&str, &str>) -> eyre::Result<Self> {
         Ok(Self {
             keys: (0..56)
                 .map(|i| {
                     Ok(Key {
                         midi_note: section
-                            .get(format!("Key_{i}"))
-                            .wrap_err("missing midi note")?
+                            .get(format!("Key_{i}").as_str())
+                            .wrap_err_with(|| format!("missing Key_{i}"))?
                             .parse()?,
                         midi_chan: section
-                            .get(format!("Chan_{i}"))
-                            .wrap_err("missing midi channel")?
+                            .get(format!("Chan_{i}").as_str())
+                            .wrap_err_with(|| format!("missing Chan_{i}"))?
                             .parse()?,
                         color: parse_color(
                             section
-                                .get(format!("Col_{i}"))
-                                .wrap_err("missing note color")?,
+                                .get(format!("Col_{i}").as_str())
+                                .wrap_err_with(|| format!("missing Col_{i}"))?,
                         )?,
                     })
                 })
