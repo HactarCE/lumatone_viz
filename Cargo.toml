@@ -2,6 +2,9 @@
 name = "lumatone_viz"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.92.0"
+repository = "https://github.com/HactarCE/lumatone_viz/"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 clap = { version = "4.5.54", features = ["derive"] }
