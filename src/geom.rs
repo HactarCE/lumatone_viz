@@ -43,7 +43,7 @@ pub static REGULAR_HEXAGON: LazyLock<[Vec2; 6]> = LazyLock::new(|| {
     ]
 });
 
-pub fn hexagon_coordinates(board: usize, mut index: usize) -> [Vec2; 6] {
+pub fn hexagon_coordinates(board: usize, mut index: usize, stroke_width: f32) -> [Vec2; 6] {
     let mut x = 0.0;
     let mut y = 0.0;
     for (&len, &offset) in std::iter::zip(ROW_LENGTHS, ROW_OFFSETS) {
@@ -59,7 +59,9 @@ pub fn hexagon_coordinates(board: usize, mut index: usize) -> [Vec2; 6] {
     let center = BOARD_CENTER + 2.0 * BOARD_OFFSET;
 
     let base = (BOARD_OFFSET * board as f32 + vec2(x, y) - center) * *DELTA;
-    REGULAR_HEXAGON.map(|v| rotate(base + v, *ANGLE))
+    REGULAR_HEXAGON
+        .map(|v| v * (1.0 - stroke_width))
+        .map(|v| rotate(base + v, *ANGLE))
 }
 
 pub fn rotate(v: Vec2, angle: f32) -> Vec2 {

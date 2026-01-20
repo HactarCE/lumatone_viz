@@ -1873,6 +1873,7 @@ dependencies = [
  "egui",
  "eyre",
  "itertools",
+ "log",
  "midir",
  "midly",
  "rust-ini",

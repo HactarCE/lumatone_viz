@@ -29,16 +29,16 @@ impl Layout {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Board {
-    pub notes: [Key; 56],
+    pub keys: [Key; 56],
 }
 
 impl Board {
     fn from_section(section: &ini::Properties) -> eyre::Result<Self> {
         Ok(Self {
-            notes: (0..56)
+            keys: (0..56)
                 .map(|i| {
                     Ok(Key {
-                        midi_key: section
+                        midi_note: section
                             .get(format!("Key_{i}"))
                             .wrap_err("missing midi note")?
                             .parse()?,
@@ -62,7 +62,7 @@ impl Board {
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Key {
-    pub midi_key: u8,
+    pub midi_note: u8,
     pub midi_chan: u8,
     pub color: [u8; 3],
 }
