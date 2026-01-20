@@ -40,6 +40,8 @@ fn main() -> eyre::Result<()> {
         "Lumatone Visualization",
         eframe::NativeOptions::default(),
         move |ctx, _frame| {
+            ctx.request_repaint();
+
             egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
                 ui.columns(2, |uis| {
                     show_midi_ui(&mut uis[0], &mut midi);
@@ -49,14 +51,13 @@ fn main() -> eyre::Result<()> {
 
             if let MidiState::Connected(state) = &midi {
                 while let Some(ev) = state.try_recv() {
-                    dbg!(ev);
                     if let midly::live::LiveEvent::Midi { channel, message } = ev {
                         match message {
                             midly::MidiMessage::NoteOff { key, vel: _ } => {
-                                pressed_keys.remove(&(channel.as_int(), key.as_int()));
+                                pressed_keys.remove(&(channel.as_int() + 1, key.as_int()));
                             }
                             midly::MidiMessage::NoteOn { key, vel: _ } => {
-                                pressed_keys.insert((channel.as_int(), key.as_int()));
+                                pressed_keys.insert((channel.as_int() + 1, key.as_int()));
                             }
                             _ => (),
                         }
