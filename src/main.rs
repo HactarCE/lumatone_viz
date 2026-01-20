@@ -121,8 +121,8 @@ fn show_midi_ui(ui: &mut egui::Ui, midi: &mut MidiState) {
                     midi.init();
                 } else {
                     ui.colored_label(ui.visuals().error_fg_color, error_msg);
+                    *midi = MidiState::Uninit(error);
                 }
-                *midi = MidiState::Uninit(error);
             }
             MidiState::Ready {
                 state,
