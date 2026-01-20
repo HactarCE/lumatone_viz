@@ -91,16 +91,12 @@ fn main() -> eyre::Result<()> {
                             key_color.gamma_multiply(1.0 - visuals.darken_unpressed)
                         };
 
-                        let stroke = (
-                            visuals.outline_size * scale,
-                            if is_pressed {
-                                ui.visuals().strong_text_color()
-                            } else {
-                                ui.visuals()
-                                    .strong_text_color()
-                                    .gamma_multiply(1.0 - visuals.darken_unpressed)
-                            },
-                        );
+                        let stroke_color = if is_pressed {
+                            ui.visuals().strong_text_color()
+                        } else {
+                            egui::Color32::TRANSPARENT
+                        };
+                        let stroke = (visuals.outline_size * scale, stroke_color);
 
                         p.add(egui::epaint::PathShape::convex_polygon(
                             points, fill_color, stroke,
