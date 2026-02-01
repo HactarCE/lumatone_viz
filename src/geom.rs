@@ -14,7 +14,7 @@ pub static DELTA: LazyLock<Vec2> = LazyLock::new(|| vec2(DX, *DY));
 pub const ROW_LENGTHS: &[usize] = &[2, 5, 6, 6, 6, 6, 6, 6, 6, 5, 2];
 pub const ROW_OFFSETS: &[usize] = &[0, 1, 0, 1, 0, 1, 0, 1, 0, 3, 8];
 pub const BOARD_OFFSET: Vec2 = vec2(6.0, 2.0);
-pub const BOARD_CENTER: Vec2 = vec2(3.0, 4.5);
+pub const BOARD_CENTER: Vec2 = vec2(3.0, 5.0);
 pub const TOP_LEFT_PAD: Vec2 = vec2(0.5, -0.5);
 pub static TOTAL_SIZE: LazyLock<Vec2> = LazyLock::new(|| {
     rotate(
