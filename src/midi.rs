@@ -1,5 +1,6 @@
 use std::sync::mpsc;
 
+use eyre::eyre;
 use midir::{
     MidiInput, MidiInputConnection, MidiInputPort, MidiOutput, MidiOutputConnection, MidiOutputPort,
 };
@@ -99,7 +100,8 @@ impl ReadyMidiState {
 
         let output_connection = self
             .output
-            .connect(&output_port, "lumatone_viz_input_port")?;
+            .connect(&output_port, "lumatone_viz_input_port")
+            .map_err(|e| eyre!(e.to_string()))?;
 
         let (event_tx, event_rx) = mpsc::channel();
 
@@ -108,18 +110,21 @@ impl ReadyMidiState {
             event_tx,
         };
 
-        let input_connection = self.input.connect(
-            &input_port,
-            "lumatone_viz_input_port",
-            |_timestamp, message, state| {
-                _ = state.output_connection.send(message);
-                match midly::live::LiveEvent::parse(message) {
-                    Ok(event) => _ = state.event_tx.send(event.to_static()),
-                    Err(e) => eprintln!("error parsing MIDI message {message:x?}: {e}"),
-                }
-            },
-            state,
-        )?;
+        let input_connection = self
+            .input
+            .connect(
+                &input_port,
+                "lumatone_viz_input_port",
+                |_timestamp, message, state| {
+                    _ = state.output_connection.send(message);
+                    match midly::live::LiveEvent::parse(message) {
+                        Ok(event) => _ = state.event_tx.send(event.to_static()),
+                        Err(e) => eprintln!("error parsing MIDI message {message:x?}: {e}"),
+                    }
+                },
+                state,
+            )
+            .map_err(|e| eyre!(e.to_string()))?;
 
         Ok(ConnectedMidiState {
             input_port: (input_port, input_port_name),
