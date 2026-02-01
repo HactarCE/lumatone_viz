@@ -43,10 +43,14 @@ fn main() -> eyre::Result<()> {
             ctx.request_repaint();
 
             egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-                ui.columns(2, |uis| {
-                    show_midi_ui(&mut uis[0], &mut midi);
-                    show_visuals_ui(&mut uis[1], &mut visuals);
-                });
+                egui::CollapsingHeader::new("Configuration")
+                    .default_open(true)
+                    .show_unindented(ui, |ui| {
+                        ui.columns(2, |uis| {
+                            show_midi_ui(&mut uis[0], &mut midi);
+                            show_visuals_ui(&mut uis[1], &mut visuals);
+                        });
+                    });
             });
 
             if let MidiState::Connected(state) = &midi {
