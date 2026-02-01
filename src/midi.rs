@@ -86,22 +86,25 @@ impl ReadyMidiState {
     pub fn connect(
         self,
         input_port: MidiInputPort,
-        output_port: MidiOutputPort,
+        output_port: Option<MidiOutputPort>,
     ) -> eyre::Result<ConnectedMidiState> {
         let default_name = |_| "<error>".to_string();
         let input_port_name = self
             .input
             .port_name(&input_port)
             .unwrap_or_else(default_name);
-        let output_port_name = self
-            .output
-            .port_name(&output_port)
-            .unwrap_or_else(default_name);
+        let output_port_name = output_port
+            .as_ref()
+            .map(|p| self.output.port_name(&p).unwrap_or_else(default_name));
 
-        let output_connection = self
-            .output
-            .connect(&output_port, "lumatone_viz_input_port")
-            .map_err(|e| eyre!(e.to_string()))?;
+        let output_connection = match &output_port {
+            Some(p) => MidiOut::Connected(
+                self.output
+                    .connect(&p, "lumatone_viz_input_port")
+                    .map_err(|e| eyre!(e.to_string()))?,
+            ),
+            None => MidiOut::Disconnected(self.output),
+        };
 
         let (event_tx, event_rx) = mpsc::channel();
 
@@ -116,7 +119,9 @@ impl ReadyMidiState {
                 &input_port,
                 "lumatone_viz_input_port",
                 |_timestamp, message, state| {
-                    _ = state.output_connection.send(message);
+                    if let MidiOut::Connected(output_connection) = &mut state.output_connection {
+                        _ = output_connection.send(message);
+                    }
                     match midly::live::LiveEvent::parse(message) {
                         Ok(event) => _ = state.event_tx.send(event.to_static()),
                         Err(e) => eprintln!("error parsing MIDI message {message:x?}: {e}"),
@@ -128,7 +133,7 @@ impl ReadyMidiState {
 
         Ok(ConnectedMidiState {
             input_port: (input_port, input_port_name),
-            output_port: (output_port, output_port_name),
+            output_port: Option::zip(output_port, output_port_name),
             input_connection,
             event_rx,
         })
@@ -137,7 +142,7 @@ impl ReadyMidiState {
 
 pub struct ConnectedMidiState {
     input_port: (MidiInputPort, String),
-    output_port: (MidiOutputPort, String),
+    output_port: Option<(MidiOutputPort, String)>,
     input_connection: MidiInputConnection<MidiPassthroughListenerState>,
     event_rx: mpsc::Receiver<LiveEvent<'static>>,
 }
@@ -147,8 +152,8 @@ impl ConnectedMidiState {
         &self.input_port
     }
 
-    pub fn output_port(&self) -> &(MidiOutputPort, String) {
-        &self.output_port
+    pub fn output_port(&self) -> Option<&(MidiOutputPort, String)> {
+        self.output_port.as_ref()
     }
 
     pub fn try_recv(&self) -> Option<LiveEvent<'static>> {
@@ -157,12 +162,20 @@ impl ConnectedMidiState {
 
     pub fn disconnect(self) -> ReadyMidiState {
         let (input, passthrough_state) = self.input_connection.close();
-        let output = passthrough_state.output_connection.close();
+        let output = match passthrough_state.output_connection {
+            MidiOut::Connected(midi_output_connection) => midi_output_connection.close(),
+            MidiOut::Disconnected(midi_output) => midi_output,
+        };
         ReadyMidiState { input, output }
     }
 }
 
 struct MidiPassthroughListenerState {
-    output_connection: MidiOutputConnection,
+    output_connection: MidiOut,
     event_tx: mpsc::Sender<LiveEvent<'static>>,
+}
+
+enum MidiOut {
+    Connected(MidiOutputConnection),
+    Disconnected(MidiOutput),
 }

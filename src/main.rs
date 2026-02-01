@@ -150,9 +150,9 @@ fn show_midi_ui(ui: &mut egui::Ui, midi: &mut MidiState) {
                             ui.selectable_value(&mut output_port, Some(port), port_name);
                         }
                     });
-                    ui.add_enabled_ui(input_port.is_some() && output_port.is_some(), |ui| {
+                    ui.add_enabled_ui(input_port.is_some(), |ui| {
                         if ui.button("Connect").clicked() {
-                            *midi = match state.connect(input_port.unwrap(), output_port.unwrap()) {
+                            *midi = match state.connect(input_port.unwrap(), output_port) {
                                 Ok(connected_state) => MidiState::Connected(connected_state),
                                 Err(e) => e.into(),
                             };
@@ -175,7 +175,14 @@ fn show_midi_ui(ui: &mut egui::Ui, midi: &mut MidiState) {
                 ui.horizontal(|ui| {
                     ui.label("Output port");
                     ui.add_enabled_ui(false, |ui| {
-                        ui.selectable_label(true, &state.output_port().1)
+                        let output_port_name = match state.output_port() {
+                            Some(p) => &p.1,
+                            None => {
+                                ui.set_invisible();
+                                ""
+                            }
+                        };
+                        ui.selectable_label(true, output_port_name)
                     });
                 });
                 if ui.button("Disconnect").clicked() {
