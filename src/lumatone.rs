@@ -1,10 +1,12 @@
-use std::{collections::HashMap, path::Path};
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 use eyre::{Context, ContextCompat, bail};
 use itertools::Itertools;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct Layout {
+    pub path: Option<PathBuf>,
     pub boards: [Board; 5],
 }
 
@@ -26,6 +28,7 @@ impl Layout {
         sections.insert(section_name, section);
 
         Ok(Self {
+            path: Some(ltn_file.to_path_buf()),
             boards: (0..5)
                 .map(|i| {
                     let section_name = format!("Board{i}");
@@ -45,6 +48,14 @@ impl Layout {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Board {
     pub keys: [Key; 56],
+}
+
+impl Default for Board {
+    fn default() -> Self {
+        Self {
+            keys: [Key::default(); 56],
+        }
+    }
 }
 
 impl Board {

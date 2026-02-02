@@ -18,13 +18,16 @@ pub struct Visuals {
 
 #[derive(clap::Parser, Debug)]
 struct CliArgs {
-    ltn_file: PathBuf,
+    ltn_file: Option<PathBuf>,
 }
 
 fn main() -> eyre::Result<()> {
     let args = CliArgs::parse();
 
-    let layout = Layout::load_from_file(&args.ltn_file)?;
+    let mut layout = match args.ltn_file {
+        Some(path) => Layout::load_from_file(&path)?,
+        None => Layout::default(),
+    };
 
     let mut midi = MidiState::default();
 
@@ -36,16 +39,34 @@ fn main() -> eyre::Result<()> {
         lighten_pressed: 0.1,
     };
 
+    let mut native_options = eframe::NativeOptions::default();
+    native_options.viewport.drag_and_drop = Some(true);
+
     eframe::run_simple_native(
         "Lumatone Visualization",
-        eframe::NativeOptions::default(),
+        native_options,
         move |ctx, _frame| {
             ctx.request_repaint();
+
+            ctx.input(|input| {
+                for file in &input.raw.dropped_files {
+                    if let Some(path) = &file.path {
+                        match Layout::load_from_file(path) {
+                            Ok(l) => layout = l,
+                            Err(e) => log::error!("error loading file: {e}"),
+                        }
+                    }
+                }
+            });
 
             egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
                 egui::CollapsingHeader::new("Configuration")
                     .default_open(true)
                     .show_unindented(ui, |ui| {
+                        match &layout.path {
+                            Some(path) => ui.label(format!("Loaded layout from {path:?}")),
+                            None => ui.label("Drag a .ltn layout file to load it"),
+                        };
                         ui.columns(2, |uis| {
                             show_midi_ui(&mut uis[0], &mut midi);
                             show_visuals_ui(&mut uis[1], &mut visuals);
